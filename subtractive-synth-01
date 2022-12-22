@@ -1,0 +1,148 @@
+// SYNTHUX ACADEMY // FUNDAMENTAL COURSE
+
+// EX.01 ~ SUBTRACTIVE SYNTH
+
+// COMPLETE TUTORIAL FOR THIS PROGRAM:
+// https://bit.ly/synthuxtutorial1
+
+// DaisySP REFERENCE: 
+// https://electro-smith.github.io/DaisySP/index.html
+
+///////////////////////////////////////////////////////////////
+////////////// SIMPLE X DAISY PINOUT CHEATSHEET ///////////////
+
+// 3v3           29  |       |   20    AGND
+// D15 / A0      30  |       |   19    OUT 01
+// D16 / A1      31  |       |   18    OUT 00
+// D17 / A2      32  |       |   17    IN 01
+// D18 / A3      33  |       |   16    IN 00
+// D19 / A4      34  |       |   15    D14
+// D20 / A5      35  |       |   14    D13
+// D21 / A6      36  |       |   13    D12
+// D22 / A7      37  |       |   12    D11
+// D23 / A8      38  |       |   11    D10
+// D24 / A9      39  |       |   10    D9
+// D25 / A10     40  |       |   09    D8
+// D26           41  |       |   08    D7
+// D27           42  |       |   07    D6
+// D28 / A11     43  |       |   06    D5
+// D29           44  |       |   05    D4
+// D30           45  |       |   04    D3
+// 3v3 Digital   46  |       |   03    D2
+// VIN           47  |       |   02    D1
+// DGND          48  |       |   01    D0
+
+
+#define s12 A10  // KNOB // OSCILLATOR FREQUENCY
+#define s44 A1   // KNOB // LFO FREQUENCY
+#define s78 A0   // KNOB // MASTER VOLUME
+#define s80 D14  // SWITCH // VOLUME ON-OFF
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// LIBRARIES & HARDWARE ////////////////////
+
+
+#include "DaisyDuino.h"
+DaisyHardware hw;
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// MODULES /////////////////////////////////
+
+
+static Oscillator osc;
+static Oscillator lfo;
+static MoogLadder flt;
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// VARIABLES ///////////////////////////////
+
+
+float oscOut;
+float lfoOut;
+float output;
+float oscFreqKnob;
+float lfoFreqKnob;
+float volume;
+float volKnob;
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// AUDIO CALLBACK (PATCH) //////////////////
+
+
+void AudioCallback(float **in, float **out, size_t size) {
+
+  for (size_t i = 0; i < size; i++) {
+
+    oscOut = osc.Process();
+    lfoOut = 5000 + (lfo.Process() * 5000);
+
+    flt.SetFreq(lfoOut);
+    output = flt.Process(oscOut);
+
+    out[0][i] = output * volume;
+    out[1][i] = output * volume;
+  }
+}
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// SETUP ///////////////////////////////////
+
+
+void setup() {
+  
+  // DAISY SETUP
+  float sample_rate;
+  hw = DAISY.init(DAISY_SEED, AUDIO_SR_48K);
+  sample_rate = DAISY.get_samplerate();
+
+  // OSCILLATOR SETUP
+  osc.Init(sample_rate);
+  osc.SetWaveform(Oscillator::WAVE_POLYBLEP_SAW);
+
+  // FILTER SETUP
+  flt.Init(sample_rate);
+  flt.SetRes(0.7);
+
+  // LFO SETUP
+  lfo.Init(sample_rate);
+  lfo.SetWaveform(Oscillator::WAVE_SIN);
+  lfo.SetAmp(1);
+  lfo.SetFreq(.4);
+
+  // ON-OFF SWITCH SETUP
+  pinMode(s80, INPUT_PULLUP);
+
+  // BEGIN CALLBACK
+  DAISY.begin(AudioCallback);
+}
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// LOOP ////////////////////////////////////
+
+
+void loop() {
+
+  // VARIABLES & MAPPING
+  oscFreqKnob = (1023.0 - analogRead(s12));
+  lfoFreqKnob = fmap(1 - analogRead(s44) / 1023.0, 0, 20);
+  volKnob = (1 - analogRead(s78) / 1023.0);
+
+  // OSCILLATOR CONTROLS
+  osc.SetFreq(oscFreqKnob);
+
+  // LFO CONTROLS
+  lfo.SetFreq(lfoFreqKnob);
+
+  // VOLUME CONTROLS
+  if (digitalRead(s80) == 1) {
+    volume = 0;
+  } else {
+    volume = volKnob;
+  }
+}
