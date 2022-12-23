@@ -33,10 +33,10 @@
 // DGND          48  |       |   01    D0
 
 
-#define s12 A10  // KNOB // OSCILLATOR FREQUENCY
-#define s44 A1   // KNOB // LFO FREQUENCY
-#define s78 A0   // KNOB // MASTER VOLUME
-#define s80 D14  // SWITCH // VOLUME ON-OFF
+#define S12 A10  // KNOB // OSCILLATOR FREQUENCY
+#define S44 A1   // KNOB // LFO FREQUENCY
+#define S78 A0   // KNOB // MASTER VOLUME
+#define S80 D14  // SWITCH // VOLUME ON-OFF
 
 
 ///////////////////////////////////////////////////////////////
@@ -129,9 +129,9 @@ void setup() {
 void loop() {
 
   // VARIABLES & MAPPING
-  oscFreqKnob = (1023.0 - analogRead(s12));
-  lfoFreqKnob = fmap(1 - analogRead(s44) / 1023.0, 0, 20);
-  volKnob = (1 - analogRead(s78) / 1023.0);
+  oscFreqKnob = (1023.0 - analogRead(S12));
+  lfoFreqKnob = fmap(1 - analogRead(S44) / 1023.0, 0, 20);
+  volKnob = (1 - analogRead(S78) / 1023.0);
 
   // OSCILLATOR CONTROLS
   osc.SetFreq(oscFreqKnob);
@@ -140,7 +140,7 @@ void loop() {
   lfo.SetFreq(lfoFreqKnob);
 
   // VOLUME CONTROLS
-  if (digitalRead(s80) == 1) {
+  if (digitalRead(S80) == 1) {
     volume = 0;
   } else {
     volume = volKnob;
