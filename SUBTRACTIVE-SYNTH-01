@@ -115,7 +115,7 @@ void setup() {
   lfo.SetFreq(.4);
 
   // ON-OFF SWITCH SETUP
-  pinMode(s80, INPUT_PULLUP);
+  pinMode(S80, INPUT_PULLUP);
 
   // BEGIN CALLBACK
   DAISY.begin(AudioCallback);
