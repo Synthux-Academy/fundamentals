@@ -1,0 +1,151 @@
+// ELECTRO METAL OBJECTS // FUNDAMENTAL COURSE
+
+// EX.02 ~ ADSR ENVELOPE
+
+// DaisySP REFERENCE:
+// LIBRARY: https://electro-smith.github.io/DaisySP/namespaces.html
+// ADSR:    https://electro-smith.github.io/DaisySP/classdaisysp_1_1_adsr.html
+
+//////////////////////////////////////////////////////
+////////////// DAISY PINOUT CHEATSHEET ///////////////
+
+// 3v3           21  |       |   20    AGND
+// D15 / A0      22  |       |   19    OUT 01
+// D16 / A1      23  |       |   18    OUT 00
+// D17 / A2      24  |       |   17    IN 01
+// D18 / A3      25  |       |   16    IN 00
+// D19 / A4      26  |       |   15    D14
+// D20 / A5      27  |       |   14    D13
+// D21 / A6      28  |       |   13    D12
+// D22 / A7      29  |       |   12    D11
+// D23 / A8      30  |       |   11    D10
+// D24 / A9      31  |       |   10    D9
+// D25 / A10     32  |       |   09    D8
+// D26           33  |       |   08    D7
+// D27           34  |       |   07    D6
+// D28 / A11     35  |       |   06    D5
+// D29           36  |       |   05    D4
+// D30           37  |       |   04    D3
+// 3v3 Digital   38  |       |   03    D2
+// VIN           39  |       |   02    D1
+// DGND          40  |       |   01    D0
+
+///////////////////////////////////////////////////////////////
+///////////////////// LIBRARIES & HARDWARE ////////////////////
+
+
+#define trigger D7  // WIRE // TRIGGER ENVELOPE
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// LIBRARIES & HARDWARE ////////////////////
+
+
+#include "DaisyDuino.h"
+DaisyHardware hw;
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// MODULES /////////////////////////////////
+
+
+static Oscillator osc1;
+static Oscillator osc2;
+static MoogLadder flt;
+static Adsr env;
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// VARIABLES ///////////////////////////////
+
+
+float oscOut;
+float osc2Out;
+float filterOut;
+float envOut;
+float envRelease;
+bool gate;
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// AUDIO CALLBACK (PATCH) //////////////////
+
+
+void AudioCallback(float **in, float **out, size_t size) {
+
+  for (size_t i = 0; i < size; i++) {
+
+    oscOut = osc1.Process() * osc2.Process();
+    filterOut = flt.Process(oscOut);
+    envOut = env.Process(gate);
+
+    out[0][i] = filterOut * envOut;
+    out[1][i] = filterOut * envOut;
+  }
+}
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// SETUP ///////////////////////////////////
+
+
+void setup() {
+
+  // DAISY SETUP
+  float sample_rate;
+  hw = DAISY.init(DAISY_SEED, AUDIO_SR_48K);
+  sample_rate = DAISY.get_samplerate();
+
+  // INITIATING CLASSES
+  osc1.Init(sample_rate);
+  osc2.Init(sample_rate);
+  flt.Init(sample_rate);
+  env.Init(sample_rate);
+
+  // OSC1 SETUP
+  osc1.SetWaveform(Oscillator::WAVE_SIN);
+  osc1.SetAmp(1);
+
+  // OSC2 SETUP
+  osc2.SetWaveform(Oscillator::WAVE_SIN);
+  osc2.SetAmp(1);
+
+  // FILTER SETUP
+  flt.SetFreq(10000);
+  flt.SetRes(0);
+
+  // SET ENVELOPE PARAMETERS
+  env.SetTime(ADSR_SEG_ATTACK, .01);  // How long it takes the envelope to reach the sustain
+  env.SetTime(ADSR_SEG_RELEASE, 1);  // How long it takes the envelope to close after trigger released
+  env.SetSustainLevel(1);             // Maximum signal level for the envelope
+
+  // TRIGGER SETUP
+  pinMode(trigger, INPUT_PULLUP);
+
+  // BEGIN CALLBACK
+  DAISY.begin(AudioCallback);
+}
+
+
+///////////////////////////////////////////////////////////////
+///////////////////// LOOP ////////////////////////////////////
+
+
+void loop() {
+
+  // OSCILLATORS FREQUENCY
+  // Changing these numbers will dramatically impact the sound timbre
+  osc1.SetFreq(200);
+  osc2.SetFreq(300);
+
+  // FILTER FREQUENCY
+  // The lower the filter frequency is, the less high frequencies will be present
+  flt.SetFreq(10000);
+
+  // ENVELOPE TRIGGER CONTROL
+  if (digitalRead(trigger) == 0) {
+    gate = 1;
+  } else if (digitalRead(trigger) == 1) {
+    gate = 0;
+  }
+}
