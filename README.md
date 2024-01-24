@@ -1,2 +1,4 @@
 # Synth DIY Fundamentals Course Resources
-Synthesizer code from the fundamentals synth DIY course
+Synthesizer code from our fundamentals synth DIY course
+https://learn.synthux.academy/courses/101
+
